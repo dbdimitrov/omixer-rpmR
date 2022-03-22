@@ -5,3 +5,5 @@ test
 README\.md
 CONTRIBUTING.md
 Makefile
+^.*\.Rproj$
+^\.Rproj\.user$

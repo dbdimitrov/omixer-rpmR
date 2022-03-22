@@ -4,3 +4,4 @@
 omixerRpm_*.tar.gz 
 *.Rout
 /.README.md.html
+.Rproj.user

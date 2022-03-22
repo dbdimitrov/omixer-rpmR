@@ -1,36 +1,38 @@
 # x is a dataframe or a valid file path
 # Add the Description of modules as a data object
 rpm <- function(x, minimum.coverage=-1, score.estimator="median", annotation = 1, module.db = NULL, threads = 1,
-		normalize.by.length = FALSE, distribute = FALSE, java.mem=NULL) {
+		normalize.by.length = FALSE, distribute = FALSE, java.mem=NULL, out.dir=NULL) {
 	# link to the GMMs executable and DB
 	rpm.exec <- system.file("java", "omixer-rpm.jar", package = "omixerRpm")
 	if(is.null(module.db)) {
 		module.db <- loadDefaultDB()
 	}
-	
+
 	# Prepare output directories
-	out.dir <- tempfile()
-	dir.create(out.dir)
-	
+	if(is.null(out.dir)){
+	    out.dir <- tempfile()
+	    dir.create(out.dir)
+	}
+
 	# Is x a file or a data.frame
 	if(!is.character(x)) {
 		# write samples for processing with the GMMs
 		in.dir <- tempfile()
 		dir.create(in.dir)
 		input <- file.path(in.dir, "input.tsv")
-		write.table(x, input, col.names=T, row.names=F, quote=F, sep="\t")		
+		write.table(x, input, col.names=T, row.names=F, quote=F, sep="\t")
 	} else {
 		input <- x
 	}
 
 	# Compiling the command
 	command <- "java -server"
-	
+
 	if(!is.null(java.mem)){
 		command <- paste(command, paste0("-Xmx", java.mem, "G"))
 	}
-	
-	command <- paste(command , "-jar", rpm.exec, 
+
+	command <- paste(command , "-jar", rpm.exec,
 			"-c" , minimum.coverage,
 			"-s", score.estimator,
 			"-d", file.path(module.db@directory, module.db@modules),
@@ -38,23 +40,23 @@ rpm <- function(x, minimum.coverage=-1, score.estimator="median", annotation = 1
 			"-o", out.dir,
 			"-a", annotation,
 			"-t", threads,
-			"-e", 2) 
-	if( normalize.by.length == TRUE) { 
+			"-e", 2)
+	if( normalize.by.length == TRUE) {
 		command <-paste(command, "-n")
 	}
-	
-	if( distribute == TRUE) { 
+
+	if( distribute == TRUE) {
 		command <-paste(command, "--Xdistribute")
 	}
-	
-	# Run the module mapping 
+
+	# Run the module mapping
 	tryCatch({
 				system(command)
 			},
 			warning = function (e) {
 				print(e)
 				if(e$message == "error in running command"){
-					stop(e)	
+					stop(e)
 				}
 			},
 			error = function (e) {
@@ -65,11 +67,11 @@ rpm <- function(x, minimum.coverage=-1, score.estimator="median", annotation = 1
 
 	abundance <- read.table(file.path(out.dir, "modules.tsv"), sep="\t", header=TRUE)
 	coverage <- read.table(file.path(out.dir, "modules-coverage.tsv"), sep="\t", header=TRUE)
-	
+
 	annotation.df <- NULL
-	
+
 	if (annotation == 1){
-		# ortohology only 
+		# ortohology only
 		abundance.colnames <- colnames(abundance)
 		annotation.df <- as.data.frame(abundance[, 1])
 		abundance <- as.data.frame(abundance[, -c(1)])
@@ -87,6 +89,6 @@ rpm <- function(x, minimum.coverage=-1, score.estimator="median", annotation = 1
 		colnames(abundance) <- abundance.colnames[3:length(abundance.colnames)]
 		colnames(coverage) <- abundance.colnames[3:length(abundance.colnames)]
 	}
-	
-	Modules(abundance=abundance, coverage=coverage, annotation=annotation.df, db=module.db) 
+
+	Modules(abundance=abundance, coverage=coverage, annotation=annotation.df, db=module.db)
 }
